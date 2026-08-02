@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html data-bs-theme="dark">
+	<head>
+		<title>Home</title>
+	</head>
+	<body>
+		{{ template "Header" . }}
+		{{if .is_logged_in}}
+			<p>Welcome {{.username}}</p>
+
+			<a href="/profile">Profile</a>
+
+			<form method="POST" action="/logout">
+				<button type="submit">Logout</button>
+			</form>
+		{{else}}
+			<a href="/login">Login</a>
+			<a href="/register">Register</a>
+		{{end}}
+	</body>
+</html>

@@ -1,0 +1,22 @@
+.pdf-card {
+	cursor: move;
+	user-select: none;
+	transition: transform 0.15s;
+}
+
+.pdf-card:hover {
+	transform: scale(1.02);
+}
+
+.dragging {
+	opacity: 0.5;
+}
+
+.pdf-preview {
+	font-size: 4rem;
+	line-height: 1;
+}
+
+#pdf-list {
+	min-height: 150px;
+}

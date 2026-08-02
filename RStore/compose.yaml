@@ -1,0 +1,43 @@
+services:
+  mariadb:
+    image: docker.io/library/mariadb:11
+    container_name: mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: rootpassword
+      MARIADB_DATABASE: appdb
+      MARIADB_USER: appuser
+      MARIADB_PASSWORD: apppassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./data:/var/lib/mysql:Z
+
+  golang:
+    build:
+      context: ./app
+    container_name: golang-app
+    restart: unless-stopped
+    depends_on:
+      - mariadb
+    environment:
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_NAME: appdb
+      DB_USER: appuser
+      DB_PASSWORD: apppassword
+    ports:
+      - "8080"
+    volumes:
+      - ./app:/app:Z
+
+  caddy:
+    image: docker.io/library/caddy:latest
+    container_name: caddy
+    restart: unless-stopped
+    depends_on:
+      - golang
+    ports:
+      - "8081:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:Z
