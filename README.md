@@ -17,6 +17,8 @@ RStore is a custom in-house inventory and store management application designed 
 - Responsive frontend using Bootstrap
 - Containerized deployment using Docker/Podman
 
+---
+
 ## Technologies Used
 
 ### Backend
@@ -41,11 +43,13 @@ RStore is a custom in-house inventory and store management application designed 
 - Docker Compose / Podman Compose
 - Alpine Linux containers
 
+---
+
 ## Running Locally
-``git clone https://github.com/wadecosta/RStore.git
-cd RStore
-go mod download
-podman-compose up --build``
+- `git clone https://github.com/wadecosta/RStore.git`
+- `cd RStore`
+- `go mod download`
+- `podman-compose up --build`
 
 
 - The Application will start on `http://localhost:8081`
