@@ -5,11 +5,11 @@ document.addEventListener("DOMContentLoaded", () => {
 	
 	editModal.addEventListener("show.bs.modal", function (event) {
 		const button = event.relatedTarget;
-		document.getElementById("edit-id").value = button.dataset.id;
-		document.getElementById("edit-name").value = button.dataset.name;
-		document.getElementById("edit-phone").value = button.dataset.phone;
-		document.getElementById("edit-email").value = button.dataset.email;
-		document.getElementById("edit-auto").checked = button.dataset.auto === "true";
+		document.getElementById("edit-vendor-id").value = button.dataset.id;
+		document.getElementById("edit-vendor-name").value = button.dataset.name;
+		document.getElementById("edit-vendor-phone").value = button.dataset.phone;
+		document.getElementById("edit-vendor-email").value = button.dataset.email;
+		document.getElementById("edit-vendor-auto").checked = button.dataset.auto === "true";
 	});
 
 	/* Delete */
@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	deleteModal.addEventListener("show.bs.modal", function (event) {
 		const button = event.relatedTarget;
-		document.getElementById("delete-id").value = button.dataset.id;
-		document.getElementById("delete-name").textContent = button.dataset.name;
+		document.getElementById("delete-vendor-id").value = button.dataset.id;
+		document.getElementById("delete-vendor-name").textContent = button.dataset.name;
 	});
 });
