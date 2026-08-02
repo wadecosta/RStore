@@ -1,3 +1,0 @@
-:80 {
-    reverse_proxy golang:8080
-}
