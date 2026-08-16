@@ -109,6 +109,9 @@ func main() {
 	mux.HandleFunc("POST /shipper-edit", EditShipperHandler)
 	mux.HandleFunc("POST /shipper-delete", DeleteShipperHandler)
 
+	/* Notes */
+	mux.HandleFunc("POST /note-add", AddNoteHandler)
+
 	/* Combine PDFs */
 	mux.HandleFunc("GET /merge-pdf", MergePDFHandler)
 	mux.HandleFunc("POST /merge-pdf", MergePDFSubmitHandler)
@@ -394,7 +397,7 @@ func ProfileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := UserInfo {
+	/*data := UserInfo {
 		User: user,
 		IsLoggedIn: session_manager.Exists(r.Context(), "user_id"),
 	}
@@ -403,7 +406,74 @@ func ProfileHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "Template error", http.StatusInternalServerError)
+	}*/
+
+	user.IsLoggedIn = session_manager.Exists(r.Context(), "user_id")
+
+	var profile Profile
+
+	profile.User = user
+
+	profile.Notes = []Note{}
+	func() {
+		stmt := `SELECT id, note FROM notes WHERE (user_id=? AND to_delete=0)`
+		rows, err := db.Query(stmt, user_id)
+		if err != nil {
+			log.Println("Error loading notes:", err)
+			return
+		}
+		defer rows.Close()
+
+		idx := 0
+
+		for rows.Next() {
+			var n Note
+			if err := rows.Scan(&n.ID, &n.Message); err != nil {
+				log.Println("Error scanning note:", err)
+				continue
+			}
+			n.Dash_ID = idx
+			profile.Notes = append(profile.Notes, n)
+			idx++
+		}
+	}()
+
+	err = tpl.ExecuteTemplate(w, "profile.html", profile)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Template error", http.StatusInternalServerError)
 	}
+}
+
+func AddNoteHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user_id := session_manager.GetInt(r.Context(), "user_id")
+
+	/* read form value */
+	note_text := strings.TrimSpace(r.FormValue("noteText"))
+
+	if note_text == "" {
+		http.Error(w, "Note text is required", http.StatusBadRequest)
+	}
+
+	stmt :=	`
+		INSERT INTO notes
+			(user_id, note, to_delete)
+		VALUES
+			(?, ?, 0)
+		`
+	_, err := db.Exec(stmt, user_id, note_text)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/profile", http.StatusSeeOther)
 }
 
 func AddShipperHandler(w http.ResponseWriter, r *http.Request) {

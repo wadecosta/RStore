@@ -50,6 +50,19 @@ func InitSchema(db *sql.DB) error {
 					ON UPDATE CASCADE
 					ON DELETE RESTRICT
 			);`
+	
+	notes_schema := `CREATE TABLE IF NOT EXISTS notes (
+				id INT PRIMARY KEY AUTO_INCREMENT,
+				user_id INT NOT NULL,
+				note VARCHAR(280) NOT NULL,
+				to_delete BOOLEAN NOT NULL DEFAULT FALSE,
+
+				CONSTRAINT fk_notes_users
+					FOREIGN KEY (user_id)
+					REFERENCES users(id)
+					ON UPDATE CASCADE
+					ON DELETE CASCADE
+				);`
 
 	
         _, err := db.Exec(users_schema)
@@ -70,6 +83,11 @@ func InitSchema(db *sql.DB) error {
 	_, err = db.Exec(orders_schema)
 	if err != nil {
 		log.Fatal("Orders table err: ", err)
+	}
+
+	_, err = db.Exec(notes_schema)
+	if err != nil {
+		log.Fatal("Notes table err: ", err)
 	}
 
         log.Println("Schemas applied")
