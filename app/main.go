@@ -10,6 +10,7 @@ import (
     "time"
     "unicode"
     "strings"
+    "errors"
     _ "embed"
 
     "golang.org/x/crypto/bcrypt"
@@ -98,6 +99,9 @@ func main() {
 
 	/* Dashboard Page */
 	mux.HandleFunc("GET /dashboard", DashboardHandler)
+
+	/* User */
+	mux.HandleFunc("POST /account-edit", UserEditHandler)
 
 	/* Vendor */
 	mux.HandleFunc("POST /vendor-add", AddVendorHandler)
@@ -434,6 +438,54 @@ func ProfileHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		http.Error(w, "Template error", http.StatusInternalServerError)
 	}
+}
+
+func UserEditHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	username := strings.TrimSpace(r.FormValue("username"))
+	email := strings.TrimSpace(r.FormValue("email"))
+
+	if username == "" {
+		http.Error(w, "Missing username field", http.StatusBadRequest)
+		return
+	}
+
+	if email == "" {
+		http.Error(w, "Missing email field", http.StatusBadRequest)
+		return
+	}
+
+	user_id := session_manager.GetInt(r.Context(), "user_id")
+
+	stmt := `
+		UPDATE users
+		SET
+			username=?,
+			email=?
+		WHERE
+			id=?
+		`
+	
+	_, err := db.Exec(stmt, username, email, user_id)
+
+	if err != nil {
+		var mysqlErr *mysql.MySQLError
+
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
+			http.Error(w, "Username is already taken", http.StatusConflict)
+			return
+		}
+
+		log.Println(err)
+		http.Error(w, "Unable to update user details", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/profile", http.StatusSeeOther)
 }
 
 func AddNoteHandler(w http.ResponseWriter, r *http.Request) {
