@@ -8,12 +8,26 @@ import (
 func InitSchema(db *sql.DB) error {
 
 	users_schema := `CREATE TABLE IF NOT EXISTS users (
-				id INT PRIMARY KEY AUTO_INCREMENT,
-				username VARCHAR(50) NOT NULL UNIQUE,
-				password VARCHAR(255) NOT NULL,
-				email VARCHAR(255) NOT NULL UNIQUE,
+				id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+				user_id CHAR(26) NOT NULL,
+
+				username VARCHAR(50) NOT NULL,
+				password_hash VARCHAR(255) NOT NULL,
+				email VARCHAR(255) NOT NULL,
+
 				is_admin BOOLEAN NOT NULL DEFAULT FALSE,
-				created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+				is_active BOOLEAN NOT NULL DEFAULT TRUE,
+				is_verified BOOLEAN NOT NULL DEFAULT FALSE,
+
+				created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+					ON UPDATE CURRENT_TIMESTAMP,
+				last_login_at TIMESTAMP NULL DEFAULT NULL,
+
+				PRIMARY KEY (id),
+				UNIQUE KEY uq_users_user_id (user_id),
+				UNIQUE KEY uq_users_username (username),
+				UNIQUE KEY uq_users_email (email)
 			);`
 
 	vendors_schema := `CREATE TABLE IF NOT EXISTS vendors (
@@ -53,7 +67,7 @@ func InitSchema(db *sql.DB) error {
 	
 	notes_schema := `CREATE TABLE IF NOT EXISTS notes (
 				id INT PRIMARY KEY AUTO_INCREMENT,
-				user_id INT NOT NULL,
+				user_id INT UNSIGNED NOT NULL,
 				note VARCHAR(280) NOT NULL,
 				to_delete BOOLEAN NOT NULL DEFAULT FALSE,
 

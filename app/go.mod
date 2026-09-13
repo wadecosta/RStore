@@ -5,6 +5,7 @@ go 1.25.0
 require (
 	github.com/alexedwards/scs/v2 v2.9.0
 	github.com/go-sql-driver/mysql v1.9.3
+	github.com/oklog/ulid/v2 v2.1.2
 	github.com/pdfcpu/pdfcpu v0.13.0
 	golang.org/x/crypto v0.53.0
 )

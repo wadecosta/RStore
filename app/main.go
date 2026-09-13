@@ -16,6 +16,8 @@ import (
     "golang.org/x/crypto/bcrypt"
     "github.com/alexedwards/scs/v2"
     "github.com/go-sql-driver/mysql"
+
+    "github.com/oklog/ulid/v2"
 )
 
 var tpl *template.Template
@@ -242,42 +244,82 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func LoginSubmitHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-	username := r.FormValue("username")
+	if err := r.ParseForm(); err != nil {
+		log.Println("error parsing login form:", err)
+		tpl.ExecuteTemplate(w, "login.html", "Invalid username or password")
+		return
+	}
+
+	username := strings.TrimSpace(r.FormValue("username"))
 	password := r.FormValue("password")
 
-	var id int
-	var password_hash string
+	var (
+		id           int
+		passwordHash string
+		isActive     bool
+	)
 
-	log.Println(id)
-	log.Println(password_hash)
-	
-	stmt := "SELECT id, password FROM users WHERE username = ?"
-	err := db.QueryRow(stmt, username).Scan(&id, &password_hash)
-	if (err == sql.ErrNoRows) {
-		tpl.ExecuteTemplate(w, "login.html", "Invaild username or password")
+	const query = `SELECT
+				id,
+				password_hash,
+				is_active
+			FROM users
+			WHERE username = ?
+			LIMIT 1
+		`
+
+	err := db.QueryRow(query, username).Scan(
+		&id,
+		&passwordHash,
+		&isActive,
+	)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		tpl.ExecuteTemplate(w, "login.html", "Invalid username or password")
 		return
-	} else if (err != nil) {
+	}
+
+	if err != nil {
 		log.Println("Database error during login:", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError,)
 		return
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(password_hash), []byte(password))
-	if (err != nil) {
-		tpl.ExecuteTemplate(w, "login.html", "Invaild username or password")
+	if !isActive {
+		tpl.ExecuteTemplate(w, "login.html", "Invalid username or password")
 		return
 	}
 
-	err = session_manager.RenewToken(r.Context())
-	if (err != nil) {
+	err = bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password))
+
+	if err != nil {
+		tpl.ExecuteTemplate(w, "login.html", "Invalid username or password")
+		return
+	}
+
+	_, err = db.Exec(
+		"UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?",
+		id,
+	)
+
+	if err != nil {
+		log.Println("Unable to update last_login_at:", err)
+	}
+
+	if err := session_manager.RenewToken(r.Context()); err != nil {
 		log.Println("Session token renewal failed:", err)
+
+		tpl.ExecuteTemplate(
+			w,
+			"login.html",
+			"There was a problem logging you in",
+		)
 		return
 	}
 
-	session_manager.Put(r.Context(), "user_id", id)
+	session_manager.Put(r.Context(), "user_id",id)
 
-	log.Println("Success")
+	log.Println("Successful login for user ID:", id)
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
@@ -303,91 +345,208 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func RegisterSubmitHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-	username := r.FormValue("username")
-
-	/* Check username for only alphanumeric chars */
-	var name_alphanumeric = true
-	for _, char := range username {
-		if (unicode.IsLetter(char) == false) && (unicode.IsNumber(char) == false) {
-			name_alphanumeric = false
-		}
-	}
-
-	/* Check length of username */
-	var name_length bool
-	if (len(username) >= 4) && (len(username) <= 50) {
-		name_length = true
-	}
-
-	if (!name_alphanumeric || !name_length) {
-		tpl.ExecuteTemplate(w, "register.html", "Please check username criteria")
+	if err := r.ParseForm(); err != nil {
+		log.Println("Error parsing registration form:", err)
+		tpl.ExecuteTemplate(
+			w,
+			"register.html",
+			"There was a problem registering this account",
+		)
 		return
 	}
 
-	/* Check to make sure all values are lowercase */
-	all_lower := AllLower(username)
-	if (!all_lower) {
-		tpl.ExecuteTemplate(w, "register.html", "Please only use lowercase for username")
-		return
-	}
-
-	email := r.FormValue("email")
-	all_lower = AllLower(email)
-	if (!all_lower) {
-		tpl.ExecuteTemplate(w, "register.html", "Please only use lowercase for email")
-		return
-	}
-
+	/* Get and normalize form values */
+	username := strings.TrimSpace(r.FormValue("username"))
+	email := strings.ToLower(strings.TrimSpace(r.FormValue("email")))
 	password := r.FormValue("password")
 
-	stmt := "SELECT id FROM users WHERE username = ? OR email = ?"
-	row := db.QueryRow(stmt, username, email)
-
-	var u_id string
-	err := row.Scan(&u_id)
-
-	if (err != sql.ErrNoRows) {
-		tpl.ExecuteTemplate(w, "register.html", "username and/or email is already taken")
+	/* Validate username */
+	if err := ValidateUsername(username); err != nil {
+		tpl.ExecuteTemplate(w, "register.html", err.Error())
 		return
 	}
 
-	/* Create hash from password */
-	var password_hash []byte
-	password_hash, err = bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if (err != nil) {
-		log.Println("bcrypt err:", err)
-		tpl.ExecuteTemplate(w, "register.html", "There is a problem registering this account")
+	/* Validate email */
+	if err := ValidateEmail(email); err != nil {
+		tpl.ExecuteTemplate(w, "register.html", err.Error())
 		return
 	}
 
-	/* Insert user data into database */
-	var insert_stmt *sql.Stmt
-	insert_stmt, err = db.Prepare("INSERT INTO users (username, password, email, is_admin) VALUES (?, ?, ?, 0);")
-	if (err != nil) {
-		log.Println("error preparing statement:", err)
-		tpl.ExecuteTemplate(w, "register.html", "There was a problem registering this account")
+	/* Check whether username already exists */
+	var exists bool
+
+	err := db.QueryRow(
+		"SELECT EXISTS(SELECT 1 FROM users WHERE username = ?)",
+		username,
+	).Scan(&exists)
+
+	if err != nil {
+		log.Println("Error checking username:", err)
+		tpl.ExecuteTemplate(
+			w,
+			"register.html",
+			"There was a problem registering this account",
+		)
 		return
 	}
 
-	defer insert_stmt.Close()
-
-	var result sql.Result
-	result, err = insert_stmt.Exec(username, password_hash, email)
-	if (err != nil) {
-		log.Println("error inserting new user: ", err)
-		tpl.ExecuteTemplate(w, "register.html", "There was a problem registering this account")
+	if exists {
+		tpl.ExecuteTemplate(
+			w,
+			"register.html",
+			"Username is already taken",
+		)
 		return
 	}
 
-	user_id, err := result.LastInsertId()
-	if (err == nil) {
-		_ = session_manager.RenewToken(r.Context())
-		session_manager.Put(r.Context(), "user_id", int(user_id))
+	/* Check whether email already exists */
+	err = db.QueryRow(
+		"SELECT EXISTS(SELECT 1 FROM users WHERE email = ?)",
+		email,
+	).Scan(&exists)
+
+	if err != nil {
+		log.Println("Error checking email:", err)
+		tpl.ExecuteTemplate(
+			w,
+			"register.html",
+			"There was a problem registering this account",
+		)
+		return
 	}
+
+	if exists {
+		tpl.ExecuteTemplate(
+			w,
+			"register.html",
+			"Email is already registered",
+		)
+		return
+	}
+
+	/* Create password hash */
+	passwordHash, err := bcrypt.GenerateFromPassword(
+		[]byte(password),
+		bcrypt.DefaultCost,
+	)
+
+	if err != nil {
+		log.Println("bcrypt error:", err)
+		tpl.ExecuteTemplate(
+			w,
+			"register.html",
+			"There was a problem registering this account",
+		)
+		return
+	}
+
+	/* Generate public ULID */
+	publicUserID := ulid.Make().String()
+
+	/*
+		Insert new user.
+
+		id is generated automatically by MariaDB.
+		user_id is the public ULID.
+	*/
+	const stmt = `
+		INSERT INTO users (
+			user_id,
+			username,
+			password_hash,
+			email,
+			is_admin
+		)
+		VALUES (?, ?, ?, ?, FALSE)
+	`
+
+	result, err := db.Exec(
+		stmt,
+		publicUserID,
+		username,
+		passwordHash,
+		email,
+	)
+
+	if err != nil {
+		var mysqlErr *mysql.MySQLError
+
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
+			switch {
+			case strings.Contains(mysqlErr.Message, "uq_users_username"):
+				tpl.ExecuteTemplate(
+					w,
+					"register.html",
+					"Username is already taken",
+				)
+				return
+
+			case strings.Contains(mysqlErr.Message, "uq_users_email"):
+				tpl.ExecuteTemplate(
+					w,
+					"register.html",
+					"Email is already registered",
+				)
+				return
+
+			case strings.Contains(mysqlErr.Message, "uq_users_user_id"):
+				/*
+					Extremely unlikely with ULIDs, but retrying would
+					be another reasonable strategy here.
+				*/
+				log.Println("ULID collision:", err)
+
+				tpl.ExecuteTemplate(
+					w,
+					"register.html",
+					"There was a problem registering this account. Please try again.",
+				)
+				return
+			}
+		}
+
+		log.Println("Error inserting new user:", err)
+
+		tpl.ExecuteTemplate(
+			w,
+			"register.html",
+			"There was a problem registering this account",
+		)
+		return
+	}
+
+	/* Get internal database ID */
+	internalUserID, err := result.LastInsertId()
+	if err != nil {
+		log.Println("Error getting new user ID:", err)
+		tpl.ExecuteTemplate(
+			w,
+			"register.html",
+			"There was a problem registering this account",
+		)
+		return
+	}
+
+	/* Create authenticated session */
+	if err := session_manager.RenewToken(r.Context()); err != nil {
+		log.Println("Session token renewal failed:", err)
+		tpl.ExecuteTemplate(
+			w,
+			"register.html",
+			"There was a problem creating your session",
+		)
+		return
+	}
+
+	session_manager.Put(
+		r.Context(),
+		"user_id",
+		int(internalUserID),
+	)
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
+
 
 func ProfileHandler(w http.ResponseWriter, r *http.Request) {
 	if (!RequireLogin(w, r)) {
@@ -440,48 +599,136 @@ func ProfileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func ValidateUsername(username string) error {
+	username = strings.TrimSpace(username)
+
+	if username == "" {
+		return errors.New("missing username field")
+	}
+
+	if len(username) < 4 || len(username) > 50 {
+		return errors.New("username must be between 4 and 50 characters")
+	}
+
+	if !AllLower(username) {
+		return errors.New("please only use lowercase for username")
+	}
+
+	for _, char := range username {
+		if !unicode.IsLetter(char) && !unicode.IsNumber(char) {
+			return errors.New("username may only contain letters and numbers")
+		}
+	}
+
+	return nil
+}
+
+func ValidateEmail(email string) error {
+	email = strings.TrimSpace(email)
+
+	if email == "" {
+		return errors.New("missing email field")
+	}
+
+	if !AllLower(email) {
+		return errors.New("please only use lowercase for email")
+	}
+
+	return nil
+}
+
 func UserEditHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
+	/* Get and normalize form values */
 	username := strings.TrimSpace(r.FormValue("username"))
-	email := strings.TrimSpace(r.FormValue("email"))
+	email := strings.ToLower(strings.TrimSpace(r.FormValue("email")))
 
-	if username == "" {
-		http.Error(w, "Missing username field", http.StatusBadRequest)
+	/* Validate username */
+	if err := ValidateUsername(username); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if email == "" {
-		http.Error(w, "Missing email field", http.StatusBadRequest)
+	/* Validate email */
+	if err := ValidateEmail(email); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	user_id := session_manager.GetInt(r.Context(), "user_id")
+	/*
+		Get the internal database user ID from the session.
 
-	stmt := `
+		This is users.id, not the public ULID.
+	*/
+	userID := session_manager.GetInt(r.Context(), "user_id")
+
+	if userID == 0 {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	const stmt = `
 		UPDATE users
 		SET
-			username=?,
-			email=?
+			username = ?,
+			email = ?
 		WHERE
-			id=?
-		`
-	
-	_, err := db.Exec(stmt, username, email, user_id)
+			id = ?
+	`
+
+	_, err := db.Exec(
+		stmt,
+		username,
+		email,
+		userID,
+	)
 
 	if err != nil {
 		var mysqlErr *mysql.MySQLError
 
 		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
-			http.Error(w, "Username is already taken", http.StatusConflict)
-			return
+			/*
+				Distinguish between duplicate username and
+				duplicate email using the named constraints.
+			*/
+			switch {
+			case strings.Contains(mysqlErr.Message, "uq_users_username"):
+				http.Error(
+					w,
+					"Username is already taken",
+					http.StatusConflict,
+				)
+				return
+
+			case strings.Contains(mysqlErr.Message, "uq_users_email"):
+				http.Error(
+					w,
+					"Email is already registered",
+					http.StatusConflict,
+				)
+				return
+
+			default:
+				http.Error(
+					w,
+					"Username or email is already in use",
+					http.StatusConflict,
+				)
+				return
+			}
 		}
 
-		log.Println(err)
-		http.Error(w, "Unable to update user details", http.StatusInternalServerError)
+		log.Println("Error updating user details:", err)
+
+		http.Error(
+			w,
+			"Unable to update user details",
+			http.StatusInternalServerError,
+		)
 		return
 	}
 
