@@ -102,6 +102,9 @@ func main() {
 	/* Dashboard Page */
 	mux.HandleFunc("GET /dashboard", DashboardHandler)
 
+	/* Tools Page */
+	mux.HandleFunc("GET /tools", HandlerTools)
+
 	/* User */
 	mux.HandleFunc("POST /account-edit", UserEditHandler)
 

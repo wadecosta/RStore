@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Tools - {{.User.Username}}</title>
+		<link rel="stylesheet" href="/static/css/tools.css">
+	</head>
+	<body>
+		{{ template "Header" . }}
+		<main class="tools-container">
+			<div class="tools-header">
+				<h1>Tools</h1>
+				<p>Useful utilities and tools for your everyday tasks.</p>
+			</div>
+			<div class="tools-grid">
+				<!-- Merge PDF -->
+				<a href="merge-pdf" class="tool-card">
+					<div class="tool-card-header">
+						<div class="tool-icon">📄</div>
+						<h2>Merge PDF</h2>
+					</div>
+					<div class="tool-card-body">
+						<p>Combine multiple PDF files into a single document quickly and easily.</p>
+					</div>
+					<div class="tool-card-footer">Open tool<span class="arrow">→</span></div>
+				</a>
+			</div>
+		</main>
+	</body>
+</html>

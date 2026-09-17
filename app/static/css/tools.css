@@ -1,0 +1,143 @@
+body {
+	min-height: 100vh;
+	background: #121212;
+}
+
+.tools-container {
+	max-width: 1100px;
+	margin: 0 auto;
+        padding: 2rem 1rem 4rem;
+}
+
+.tools-header {
+	margin-bottom: 2rem;
+}
+
+.tools-header h1 {
+	font-size: 2rem;
+	font-weight: 600;
+	margin-bottom: 0.5rem;
+}
+
+.tools-header p {
+	color: #9ca3af;
+	margin: 0;
+	font-size: 1rem;
+}
+
+.tools-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+	gap: 1.25rem;
+}
+
+.tool-card {
+	display: flex;
+	flex-direction: column;
+	min-height: 190px;
+
+	background: #1c1c1c;
+	border: 1px solid #2d2d2d;
+	border-radius: 0.75rem;
+
+	text-decoration: none;
+	color: inherit;
+
+	transition:
+		transform 0.2s ease,
+		border-color 0.2s ease,
+		box-shadow 0.2s ease;
+	}
+
+	.tool-card:hover {
+		transform: translateY(-3px);
+		border-color: #555;
+		box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.35);
+		color: inherit;
+	}
+
+	.tool-card:focus-visible {
+		outline: 2px solid #6ea8fe;
+		outline-offset: 3px;
+	}
+
+	.tool-card-header {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		padding: 1.25rem 1.25rem 0.75rem;
+	}
+
+	.tool-icon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+
+		width: 46px;
+		height: 46px;
+		flex-shrink: 0;
+
+		border-radius: 0.6rem;
+		background: #292929;
+		border: 1px solid #383838;
+
+		font-size: 1.25rem;
+	}
+
+	.tool-card h2 {
+		font-size: 1.1rem;
+		font-weight: 600;
+		margin: 0;
+	}
+
+	.tool-card-body {
+		flex: 1;
+		padding: 0.5rem 1.25rem 1.25rem;
+	}
+
+	.tool-card-body p {
+		color: #9ca3af;
+		font-size: 0.9rem;
+		line-height: 1.5;
+		margin: 0;
+	}
+
+	.tool-card-footer {
+		display: flex;
+		justify-content: flex-end;
+		align-items: center;
+
+		padding: 0.85rem 1.25rem;
+
+		border-top: 1px solid #2d2d2d;
+		color: #adb5bd;
+		font-size: 0.85rem;
+		font-weight: 500;
+	}
+
+	.tool-card:hover .tool-card-footer {
+		color: #fff;
+	}
+
+	.arrow {
+		margin-left: 0.4rem;
+		transition: transform 0.2s ease;
+	}
+
+	.tool-card:hover .arrow {
+		transform: translateX(3px);
+	}
+
+	@media (max-width: 576px) {
+		.tools-container {
+			padding-top: 1.5rem;
+		}
+
+		.tools-header h1 {
+			font-size: 1.7rem;
+		}
+
+		.tools-grid {
+			grid-template-columns: 1fr;
+		}
+	}

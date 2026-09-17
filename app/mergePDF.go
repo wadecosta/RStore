@@ -12,6 +12,10 @@ import (
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
 )
 
+type MergePDF struct {
+	User User
+}
+
 func MergePDFSubmitHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := r.ParseMultipartForm(100 << 20)
@@ -142,13 +146,29 @@ func MergePDFSubmitHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 
-func MergePDFHandler(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	tpl.ExecuteTemplate(
-		w,
-		"mergepdf.html",
-		nil,
-	)
+func MergePDFHandler(w http.ResponseWriter, r *http.Request) {
+	if (!RequireLogin(w, r)) {
+		return
+	}
+
+	user_id := session_manager.GetInt(r.Context(), "user_id")
+
+	user, err := UserLookup(user_id)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	user.IsLoggedIn = session_manager.Exists(r.Context(), "user_id")
+
+        var mergePDF MergePDF
+
+        mergePDF.User = user
+	
+	tpl.ExecuteTemplate(w, "mergepdf.html", mergePDF)
+	if err != nil {
+                log.Println(err)
+                http.Error(w, "Template error", http.StatusInternalServerError)
+        }
 }
