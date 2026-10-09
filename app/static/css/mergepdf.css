@@ -1,11 +1,18 @@
 .pdf-card {
-	cursor: move;
+	cursor: grab;
 	user-select: none;
-	transition: transform 0.15s;
+	transition:
+		transform 0.15s ease,
+		box-shadow 0.15s ease;
+}
+
+.pdf-card:active {
+	cursor: grabbing;
 }
 
 .pdf-card:hover {
-	transform: scale(1.02);
+	transform: translateY(-3px);
+	box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.25);
 }
 
 .dragging {
@@ -13,10 +20,41 @@
 }
 
 .pdf-preview {
-	font-size: 4rem;
-	line-height: 1;
+	font-size: 1.5rem;
+	font-weight: 700;
+	margin-bottom: 1rem;
+
+	padding: 1rem;
+
+	border-radius: 0.5rem;
+
+	background: #dc3545;
+	color: white;
+}
+
+.pdf-number {
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: #adb5bd;
+	margin-bottom: 0.35rem;
+}
+
+.pdf-name {
+	font-weight: 500;
+	margin-bottom: 0.35rem;
 }
 
 #pdf-list {
 	min-height: 150px;
+}
+
+.empty-state {
+	padding: 3rem 1rem;
+
+	text-align: center;
+
+	border: 2px dashed #444;
+	border-radius: 0.75rem;
+
+	color: #888;
 }

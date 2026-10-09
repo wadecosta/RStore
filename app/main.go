@@ -108,6 +108,9 @@ func main() {
 	/* User */
 	mux.HandleFunc("POST /account-edit", UserEditHandler)
 
+	/* Item Recommendations */
+	mux.HandleFunc("POST /recommendation-add", RecommendationAddHandler)
+
 	/* Vendor */
 	mux.HandleFunc("POST /vendor-add", AddVendorHandler)
 	mux.HandleFunc("POST /vendor-edit", EditVendorHandler)
@@ -235,6 +238,30 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			s.Dash_ID = idx
 			dash.Shippers = append(dash.Shippers, s)
+			idx++
+		}
+	}()
+
+	dash.ItemRecommendations = []ItemRecommendation{}
+	func() {
+		stmt := `SELECT id, user_id, item, link FROM items_recommendations WHERE to_delete=0`
+		rows, err := db.Query(stmt)
+		if err != nil {
+			log.Println("Error loading item_recommendations:", err)
+			return
+		}
+		defer rows.Close()
+
+		idx := 0
+
+		for rows.Next() {
+			var r ItemRecommendation
+			if err := rows.Scan(&r.ID, &r.Asked_By, &r.Link, &r.Item); err != nil {
+				log.Println("Error scanning items recommendations:", err)
+				continue
+			}
+			r.Dash_ID = idx
+			dash.ItemRecommendations = append(dash.ItemRecommendations, r)
 			idx++
 		}
 	}()

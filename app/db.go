@@ -78,6 +78,20 @@ func InitSchema(db *sql.DB) error {
 					ON DELETE CASCADE
 				);`
 
+	items_recommendations_schema := `CREATE TABLE IF NOT EXISTS items_recommendations (
+						id INT PRIMARY KEY AUTO_INCREMENT,
+						user_id INT UNSIGNED NOT NULL,
+						item VARCHAR(280) NOT NULL,
+						link VARCHAR(280),
+						to_delete BOOLEAN NOT NULL DEFAULT FALSE,
+
+						CONSTRAINT fk_items_recommendations_users
+							FOREIGN KEY (user_id)
+							REFERENCES users(id)
+							ON UPDATE CASCADE
+							ON DELETE CASCADE
+						);`
+
 	
         _, err := db.Exec(users_schema)
         if err != nil {
@@ -102,6 +116,11 @@ func InitSchema(db *sql.DB) error {
 	_, err = db.Exec(notes_schema)
 	if err != nil {
 		log.Fatal("Notes table err: ", err)
+	}
+
+	_, err = db.Exec(items_recommendations_schema)
+	if err != nil {
+		log.Fatal("Items Recommendations table err: ", err)
 	}
 
         log.Println("Schemas applied")
