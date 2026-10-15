@@ -20,7 +20,7 @@ func RecommendationAddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user_id := session_manager.GetInt(r.Context(), "user_id")
+	user_id := session_manager.GetString(r.Context(), "user_id")
 
 	item_name := strings.TrimSpace(r.FormValue("item_name"))
 	item_link := strings.TrimSpace(r.FormValue("item_link"))

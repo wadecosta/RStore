@@ -80,14 +80,14 @@ func InitSchema(db *sql.DB) error {
 
 	items_recommendations_schema := `CREATE TABLE IF NOT EXISTS items_recommendations (
 						id INT PRIMARY KEY AUTO_INCREMENT,
-						user_id INT UNSIGNED NOT NULL,
+						user_id CHAR(26) NOT NULL,
 						item VARCHAR(280) NOT NULL,
 						link VARCHAR(280),
 						to_delete BOOLEAN NOT NULL DEFAULT FALSE,
 
 						CONSTRAINT fk_items_recommendations_users
 							FOREIGN KEY (user_id)
-							REFERENCES users(id)
+							REFERENCES users(user_id)
 							ON UPDATE CASCADE
 							ON DELETE CASCADE
 						);`

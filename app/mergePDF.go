@@ -151,7 +151,7 @@ func MergePDFHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user_id := session_manager.GetInt(r.Context(), "user_id")
+	user_id := session_manager.GetString(r.Context(), "user_id")
 
 	user, err := UserLookup(user_id)
 	if err != nil {

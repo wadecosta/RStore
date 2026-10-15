@@ -1,6 +1,7 @@
 package main
 
 import (
+    "bytes"
     "database/sql"
     "fmt"
     "log"
@@ -179,7 +180,7 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user_id := session_manager.GetInt(r.Context(), "user_id")
+	user_id := session_manager.GetString(r.Context(), "user_id")
 
 	user, err := UserLookup(user_id)
 	if err != nil {
@@ -244,7 +245,11 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 
 	dash.ItemRecommendations = []ItemRecommendation{}
 	func() {
-		stmt := `SELECT id, user_id, item, link FROM items_recommendations WHERE to_delete=0`
+		//stmt := `SELECT id, user_id, item, link FROM items_recommendations WHERE to_delete=0`
+		stmt := `SELECT items_recommendations.id, users.username, items_recommendations.item, items_recommendations.link
+			FROM items_recommendations
+			INNER JOIN users ON items_recommendations.user_id=users.user_id
+				WHERE items_recommendations.to_delete = 0;`
 		rows, err := db.Query(stmt)
 		if err != nil {
 			log.Println("Error loading item_recommendations:", err)
@@ -256,20 +261,27 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 
 		for rows.Next() {
 			var r ItemRecommendation
-			if err := rows.Scan(&r.ID, &r.Asked_By, &r.Link, &r.Item); err != nil {
+			if err := rows.Scan(&r.ID, &r.Asked_By, &r.Item, &r.Link); err != nil {
 				log.Println("Error scanning items recommendations:", err)
 				continue
 			}
 			r.Dash_ID = idx
+			log.Println(r)
 			dash.ItemRecommendations = append(dash.ItemRecommendations, r)
 			idx++
 		}
 	}()
 
-	err = tpl.ExecuteTemplate(w, "dashboard.html", dash)
-	if err != nil {
-		log.Println(err)
-		http.Error(w, "Template error", http.StatusInternalServerError)
+	var buf bytes.Buffer
+
+	if err := tpl.ExecuteTemplate(&buf, "dashboard.html", dash); err != nil {
+		log.Printf("Dashboard template error: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if _, err := w.Write(buf.Bytes()); err != nil {
+		log.Printf("Error writing dashboard response: %v", err)
 	}
 }
 
@@ -284,13 +296,13 @@ func LoginSubmitHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
 	var (
-		id           int
+		id           string
 		passwordHash string
 		isActive     bool
 	)
 
 	const query = `SELECT
-				id,
+				user_id,
 				password_hash,
 				is_active
 			FROM users
@@ -328,12 +340,12 @@ func LoginSubmitHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, err = db.Exec(
-		"UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?",
+		"UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE user_id = ?",
 		id,
 	)
 
 	if err != nil {
-		log.Println("Unable to update last_login_at:", err)
+		log.Printf("Unable to update last_login_at: %v", err)
 	}
 
 	if err := session_manager.RenewToken(r.Context()); err != nil {
@@ -583,7 +595,7 @@ func ProfileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user_id := session_manager.GetInt(r.Context(), "user_id")
+	user_id := session_manager.GetString(r.Context(), "user_id")
 
 	user, err := UserLookup(user_id)
 	if err != nil {

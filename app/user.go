@@ -6,7 +6,7 @@ import (
 )
 
 type User struct {
-	ID		int
+	ID		string
 	Username	string
 	Email		string
 	IsAdmin		bool
@@ -25,7 +25,7 @@ type TemplateData struct {
 	Username string
 }
 
-func UserLookup(user_id int) (User, error) {
+func UserLookup(user_id string) (User, error) {
 	var user User
 
 	stmt := `SELECT
@@ -35,7 +35,7 @@ func UserLookup(user_id int) (User, error) {
                         is_admin,
                         created_at
                 FROM users
-                WHERE id = ?`
+                WHERE user_id = ?`
 
         err := db.QueryRow(stmt, user_id).Scan(
                 &user.ID,
