@@ -11,7 +11,7 @@ type ItemRecommendation struct {
 	Asked_By	string
 	Item		string
 	Link		string
-	Dash_ID int
+	Dash_ID		int
 }
 
 func RecommendationAddHandler(w http.ResponseWriter, r *http.Request) {

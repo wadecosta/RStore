@@ -257,7 +257,7 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		defer rows.Close()
 
-		idx := 0
+		idx := 1
 
 		for rows.Next() {
 			var r ItemRecommendation
@@ -266,7 +266,6 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			r.Dash_ID = idx
-			log.Println(r)
 			dash.ItemRecommendations = append(dash.ItemRecommendations, r)
 			idx++
 		}

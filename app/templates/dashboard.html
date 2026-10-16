@@ -106,15 +106,34 @@
 			<div class="mb-4"></div>
 
 			<div class="row g-4">
-				<button class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#addRecommendationModal">
-					<i class="bi bi-plus-circle"></i> Add Recommendation
-				</button>
-
-				{{ range .ItemRecommendations }}
-				<div class="col-md-6 col-lg-4">
-					{{.}}
+				<div class="card">
+					<div class="card-header">
+						Item Recommendations
+						<button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addRecommendationModal">
+							<i class="bi bi-plus-circle"></i>
+						</button>
+					</div>
+					<table class="table table-dark">
+						<thead>
+							<tr>
+								<th scope="col">#</th>
+								<th scope="col">Item</th>
+								<th scope="col">Link</th>
+								<th scope="col">Requested By</th>
+							</tr>
+						</thead>
+						<tbody>
+							{{ range .ItemRecommendations }}
+							<tr>
+								<th scope="row">{{ .Dash_ID }}</th>
+								<td>{{ .Item }}</td>
+								<td><a href="{{ .Link }}">{{ .Link }}</a></td>
+								<td>{{ .Asked_By }}</td>
+							</tr>
+							{{ end }}
+						</tbody>
+					</table>
 				</div>
-				{{ end }}
 			</div>
 		</div>
 
