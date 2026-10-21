@@ -48,7 +48,6 @@ func RecommendationAddHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func RecommendationEditHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("RAN RECOMMENDATION EDIT HANDLER")
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
@@ -65,10 +64,6 @@ func RecommendationEditHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
 	}
-
-	log.Println(id)
-	log.Println(item_name)
-	log.Println(item_link)
 
 	stmt := `
 		UPDATE items_recommendations
