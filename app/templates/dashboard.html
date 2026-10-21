@@ -120,6 +120,7 @@
 								<th scope="col">Item</th>
 								<th scope="col">Link</th>
 								<th scope="col">Requested By</th>
+								<th scope="col">Edit</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -129,6 +130,11 @@
 								<td>{{ .Item }}</td>
 								<td><a href="{{ .Link }}">{{ .Link }}</a></td>
 								<td>{{ .Asked_By }}</td>
+								<td>
+									<button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editRecommendationModal">
+										<i class="bi bi-pencil"></i>
+									</button>
+								</td>
 							</tr>
 							{{ end }}
 						</tbody>
@@ -183,7 +189,50 @@
 				</div>
 			</div>
 		</div>
-
+		<div class="modal fade" id="editRecommendationModal" tabindex="-1">
+			<div class="modal-dialog">
+				<div class="modal-content bg-dark text-white">
+					<div class="modal-header">
+						<h5 class="modal-title">Edit Recommendation</h5>
+						<button type="button"
+							class="btn-close btn-close-white"
+							data-bs-dismiss="modal">
+						</button>
+					</div>
+					<form action="/recommendation-edit" method="POST">
+						<input type="hidden" id="recommendation-edit-id" name="id">
+						<div class="modal-body">
+							<div class="mb-3">
+								<label for="recommendation-edit-name" class="form-label">Item Name</label>
+								<input type="text"
+								       class="form-control"
+								       id="recommendation-edit-name"
+								       name="name"
+								       required>
+							</div>
+							<div class="mb-3">
+								<label for="recommendation-edit-link" class="form-label">Link to Item (Optional)</label>
+								<input type="url"
+								       class="form-control"
+								       id="recommendation-edit-link"
+								       name="link">
+							</div>
+						</div>
+						<div class="modal-footer">
+							<button class="btn btn-secondary"
+								type="button"
+								data-bs-dismiss="modal">
+								Cancel
+							</button>
+							<button class="btn btn-success"
+								type="submit">
+								Save Changes
+							</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
 		<div class="modal fade" id="addShipperModal" tabindex="-1" aria-labelledby="addShipperModalLabel" aria-hidden="true">
                          <div class="modal-dialog">
                                 <div class="modal-content bg-dark text-white">
