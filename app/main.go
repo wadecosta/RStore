@@ -111,6 +111,7 @@ func main() {
 
 	/* Item Recommendations */
 	mux.HandleFunc("POST /recommendation-add", RecommendationAddHandler)
+	mux.HandleFunc("POST /recommendation-edit", RecommendationEditHandler)
 
 	/* Vendor */
 	mux.HandleFunc("POST /vendor-add", AddVendorHandler)

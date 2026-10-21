@@ -131,7 +131,12 @@
 								<td><a href="{{ .Link }}">{{ .Link }}</a></td>
 								<td>{{ .Asked_By }}</td>
 								<td>
-									<button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editRecommendationModal">
+									<button class="btn btn-warning btn-sm"
+										data-bs-toggle="modal"
+										data-bs-target="#editRecommendationModal"
+										data-id="{{.ID}}"
+										data-name="{{.Item}}"
+										data-link="{{.Link}}">
 										<i class="bi bi-pencil"></i>
 									</button>
 								</td>
@@ -590,6 +595,7 @@
 			</div>
 		</div>
 
+		<script type="text/javascript" src="/static/js/recommendation.js"></script>
 		<script type="text/javascript" src="/static/js/shipper.js"></script>
 		<script type="text/javascript" src="/static/js/vendor.js"></script>
 	</body>
