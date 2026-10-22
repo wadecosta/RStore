@@ -6,6 +6,10 @@
         	<title>{{.User.Username}}'s Profile</title>
 	</head>
 	<body>
+		<script>
+			const storedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+			document.documentElement.setAttribute('data-bs-theme', storedTheme);
+		</script>
 		{{ template "Header" . }}
 		<div class="container my-4">
 			<div class="row g-4">
@@ -39,7 +43,7 @@
 				<div class="col-lg-8">
 					<div class="card card bg-dark text-white h-100 shadow">
 						<div class="card-header">
-							<h5 class="mb-0">Notes</h5>
+							<h5 class="mb-0">Personal Notes</h5>
 						</div>
 						<div class="card-body">
 							<div class="mb-4">
@@ -51,6 +55,11 @@
 								</button>
 							</div>
 							<div class="row g-4">
+								{{if eq .Notes_Count 0}}
+									<div class="text-center">
+										<p>No Notes</p>
+									</div>
+								{{end}}
 								{{ range .Notes }}
 								<div class="col-md-4">
 									<div class="card bg-dark text-white h-100 shadow">

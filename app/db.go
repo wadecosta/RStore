@@ -67,7 +67,7 @@ func InitSchema(db *sql.DB) error {
 	
 	notes_schema := `CREATE TABLE IF NOT EXISTS notes (
 				id INT PRIMARY KEY AUTO_INCREMENT,
-				user_id INT UNSIGNED NOT NULL,
+				user_id CHAR(26) NOT NULL,
 				note VARCHAR(280) NOT NULL,
 				to_delete BOOLEAN NOT NULL DEFAULT FALSE,
 

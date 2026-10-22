@@ -124,9 +124,9 @@ func main() {
 	mux.HandleFunc("POST /shipper-delete", DeleteShipperHandler)
 
 	/* Notes */
-	mux.HandleFunc("POST /note-add", AddNoteHandler)
-	mux.HandleFunc("POST /note-edit", EditNoteHandler)
-	mux.HandleFunc("POST /note-delete", DeleteNoteHandler)
+	mux.HandleFunc("POST /note-add", NoteAddHandler)
+	mux.HandleFunc("POST /note-edit", NoteEditHandler)
+	mux.HandleFunc("POST /note-delete", NoteDeleteHandler)
 
 	/* Combine PDFs */
 	mux.HandleFunc("GET /merge-pdf", MergePDFHandler)
@@ -583,7 +583,7 @@ func RegisterSubmitHandler(w http.ResponseWriter, r *http.Request) {
 	session_manager.Put(
 		r.Context(),
 		"user_id",
-		int(internalUserID),
+		internalUserID,
 	)
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -632,6 +632,7 @@ func ProfileHandler(w http.ResponseWriter, r *http.Request) {
 			profile.Notes = append(profile.Notes, n)
 			idx++
 		}
+		profile.Notes_Count = idx
 	}()
 
 	err = tpl.ExecuteTemplate(w, "profile.html", profile)
@@ -771,99 +772,6 @@ func UserEditHandler(w http.ResponseWriter, r *http.Request) {
 			"Unable to update user details",
 			http.StatusInternalServerError,
 		)
-		return
-	}
-
-	http.Redirect(w, r, "/profile", http.StatusSeeOther)
-}
-
-func AddNoteHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	user_id := session_manager.GetInt(r.Context(), "user_id")
-
-	/* read form value */
-	note_text := strings.TrimSpace(r.FormValue("noteText"))
-
-	if note_text == "" {
-		http.Error(w, "Note text is required", http.StatusBadRequest)
-	}
-
-	stmt :=	`
-		INSERT INTO notes
-			(user_id, note, to_delete)
-		VALUES
-			(?, ?, 0)
-		`
-	_, err := db.Exec(stmt, user_id, note_text)
-	if err != nil {
-		log.Println(err)
-		http.Error(w, "Database error", http.StatusInternalServerError)
-		return
-	}
-
-	http.Redirect(w, r, "/profile", http.StatusSeeOther)
-}
-
-func EditNoteHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	id := r.FormValue("id")
-	message := strings.TrimSpace(r.FormValue("message"))
-
-	if id == "" {
-		http.Error(w, "ID is required", http.StatusBadRequest)
-		return
-	}
-	
-	if message == "" {
-		http.Error(w, "Message is required", http.StatusBadRequest)
-		return
-	}
-
-	user_id := session_manager.GetInt(r.Context(), "user_id")
-
-	stmt := `UPDATE notes SET note=? WHERE (id=? AND user_id=?)`
-
-	_, err := db.Exec(stmt, message, id, user_id)
-
-	if err != nil {
-		log.Println(err)
-		http.Error(w, "Unable to update note", http.StatusInternalServerError)
-		return
-	}
-
-	http.Redirect(w, r, "/profile", http.StatusSeeOther)
-}
-
-func DeleteNoteHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	id := r.FormValue("id")
-
-	if id == "" {
-		http.Error(w, "Missing vendor ID", http.StatusBadRequest)
-		return
-	}
-
-	user_id := session_manager.GetInt(r.Context(), "user_id")
-	
-	stmt := `UPDATE notes SET to_delete=1 WHERE (id=? AND user_id=?)`
-	
-	_, err := db.Exec(stmt, id, user_id)
-
-	if err != nil {
-		log.Println(err)
-		http.Error(w, "Unable to delete note", http.StatusInternalServerError)
 		return
 	}
 
